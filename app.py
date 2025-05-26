@@ -28,8 +28,11 @@ login_manager.login_view = 'login'  # 로그인 안 했을 때 이동할 기본 
 # ---------- 모델 ---------- #
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), unique=True, nullable=False)
+    username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(150), nullable=False)
+
+    def __repr__(self):
+        return f'<User {self.username}>'
 
 # ---------- 유저 로딩 ---------- #
 @login_manager.user_loader
@@ -37,10 +40,15 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-# 내 아이디
-admin = User(name='euirim', password=generate_password_hash('qkfrus0921'))
-db.session.add(admin)
-db.session.commit()
+# 모델 기반 테이블 실제 DB에 생성 + 관리자 계정 생성
+with app.app_context():
+    db.create_all()
+    existing_user = User.query.filter_by(username='euirim').first()
+    if not existing_user:
+        admin = User(username='euirim', password=generate_password_hash('qkfrus0921'))
+        db.session.add(admin)
+        db.session.commit()
+
 
 
 # ---------- 라우팅 ---------- #
@@ -58,13 +66,13 @@ def login():
         if user and check_password_hash(user.password, pw):
             login_user(user)
             return redirect(url_for('index'))
-        flash('로그인 실패. 아이디 또는 비밀번호를 확인하세요.')
+        flash('로그인 실패')
     return render_template('login.html')
 
 @app.route('/index')
 @login_required
 def index():
-    return render_template('index.html', name=current_user.username)
+    return render_template('index.html', username=current_user.username)
 
 @app.route('/logout')
 @login_required
@@ -73,14 +81,10 @@ def logout():
     return redirect(url_for('login'))
 
 
-
-# 개발자용 자기소개 메서드 (최신 문법)
-def __repr__(self):
-    return f'<User {self.name}>'
-
-# 모델 기반 테이블 실제 DB에 생성
-with app.app_context():
-    db.create_all()
+@app.route('/check')
+def check():
+    user = User.query.filter_by(username='euirim').first()
+    return '존재함' if user else '없음'
 
 
 # 디버그 모드 활성화
