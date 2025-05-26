@@ -4,10 +4,14 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-import os
 from datetime import datetime
+import os
+from dotenv import load_dotenv
 import pymysql
 pymysql.install_as_MySQLdb()
+
+load_dotenv()
+print(os.environ.get('MYSQL_URL'))
 
 # Flask 앱 만들기 (웹앱의 본체)
 app = Flask(__name__)
@@ -45,12 +49,8 @@ def load_user(user_id):
 
 # 모델 기반 테이블 실제 DB에 생성 + 관리자 계정 생성
 with app.app_context():
+    db.drop_all()
     db.create_all()
-    existing_user = User.query.filter_by(username='euirim').first()
-    if not existing_user:
-        admin = User(username='euirim', password=generate_password_hash('qkfrus0921'))
-        db.session.add(admin)
-        db.session.commit()
 
 
 
