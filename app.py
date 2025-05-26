@@ -4,8 +4,10 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-import os 
+import os
 from datetime import datetime
+import pymysql
+pymysql.install_as_MySQLdb()
 
 # Flask 앱 만들기 (웹앱의 본체)
 app = Flask(__name__)
