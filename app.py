@@ -31,8 +31,8 @@ login_manager.login_view = 'login'  # 로그인 안 했을 때 이동할 기본 
 # ---------- 모델 ---------- #
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    password = db.Column(db.String(150), nullable=False)
+    username = db.Column(db.String(300), unique=True, nullable=False)
+    password = db.Column(db.String(300), nullable=False)
 
     def __repr__(self):
         return f'<User {self.username}>'
