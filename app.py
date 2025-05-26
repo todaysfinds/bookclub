@@ -10,7 +10,7 @@ from datetime import datetime
 app = Flask(__name__)
 app.secret_key = 'todaysfinds0921'
 # DB 연결 설정 - MySQL 관련 설정
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Dmlfla3495*@localhost/db_bookclub'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:PmbFnkCzdfcCGRJrbbVnPhxvkmKcLyEj@mysql.railway.internal:3306/railway'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app) # db 객체 생성
@@ -23,10 +23,6 @@ login_manager = LoginManager() # 인스턴트 생성
 login_manager.init_app(app) # 애플리케이션에 적용
 login_manager.login_view = 'login'  # 로그인 안 했을 때 이동할 기본 페이지
 
-# 내 아이디
-admin = User(name='euirim', password=generate_password_hash('qkfrus0921'))
-db.session.add(admin)
-db.session.commit()
 
 
 # ---------- 모델 ---------- #
@@ -39,6 +35,12 @@ class User(UserMixin, db.Model):
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+
+# 내 아이디
+admin = User(name='euirim', password=generate_password_hash('qkfrus0921'))
+db.session.add(admin)
+db.session.commit()
 
 
 # ---------- 라우팅 ---------- #
