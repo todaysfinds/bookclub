@@ -4,13 +4,14 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+import os 
 from datetime import datetime
 
 # Flask 앱 만들기 (웹앱의 본체)
 app = Flask(__name__)
 app.secret_key = 'todaysfinds0921'
 # DB 연결 설정 - MySQL 관련 설정
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:PmbFnkCzdfcCGRJrbbVnPhxvkmKcLyEj@mysql.railway.internal:3306/railway'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('MYSQL_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app) # db 객체 생성
