@@ -51,7 +51,8 @@ def load_user(user_id):
 
 # 모델 기반 테이블 실제 DB에 생성 + 관리자 계정 생성
 with app.app_context():
-    # db.create_all()
+    db.engine.execute("DROP TABLE IF EXISTS user;")
+    db.create_all()
     # 관리자 계정 생성 + 같은 유저 건너뛰기
     if not User.query.filter_by(username='euirim').first():
         admin = User(
