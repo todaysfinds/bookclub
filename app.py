@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from models import User
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
@@ -11,7 +12,6 @@ import pymysql
 pymysql.install_as_MySQLdb()
 
 load_dotenv()
-print(os.environ.get('MYSQL_URL'))
 
 # Flask 앱 만들기 (웹앱의 본체)
 app = Flask(__name__)
@@ -24,7 +24,8 @@ db = SQLAlchemy(app) # db 객체 생성
 
 # Flask-Migrate 초기 설정
 migrate = Migrate(app, db)
-# 테이블 구조 변경 시, 터미널에 1) flask db migrate -m "메시지" 2) flask db upgrade
+
+# 테이블 변경 시 1) flask db migrate -m "메시지" 2) flask db upgrade
 
 login_manager = LoginManager() # 인스턴트 생성
 login_manager.init_app(app) # 애플리케이션에 적용
@@ -32,9 +33,10 @@ login_manager.login_view = 'login'  # 로그인 안 했을 때 이동할 기본 
 
 
 
-# ---------- 모델 ---------- #
+# ---------- 모델 ---------- # -> models.py에 똑같이
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    is_admin = db.Column(db.Boolean, default=False)
     username = db.Column(db.String(200), unique=True, nullable=False)
     password = db.Column(db.Text, nullable=False)
 
@@ -49,9 +51,16 @@ def load_user(user_id):
 
 # 모델 기반 테이블 실제 DB에 생성 + 관리자 계정 생성
 with app.app_context():
-    db.drop_all()
-    db.create_all()
-
+    # db.create_all()
+    # 관리자 계정 생성 + 같은 유저 건너뛰기
+    if not User.query.filter_by(username='euirim').first():
+        admin = User(
+            username='euirim',
+            password=generate_password_hash('0921', method='scrypt'),
+            is_admin=True
+        )
+        db.session.add(admin)
+        db.session.commit()
 
 
 # ---------- 라우팅 ---------- #
@@ -88,6 +97,13 @@ def logout():
 def check():
     user = User.query.filter_by(username='euirim').first()
     return '존재함' if user else '없음'
+
+@app.route('/members')
+@login_required
+def member_list():
+    users = User.query.order_by(User.is_admin.desc(), User.username.asc()).all()
+    return render_template('members.html', users=users)
+
 
 
 # 디버그 모드 활성화
