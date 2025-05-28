@@ -1,6 +1,7 @@
 # Flask는 웹 서버, DB 저장, datetime은 날짜 기록용
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text
 from flask_migrate import Migrate
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from models import User
@@ -56,7 +57,7 @@ with app.app_context():
         conn.commit()
 
     db.create_all()
-    
+
     # 관리자 계정 생성 + 같은 유저 건너뛰기
     if not User.query.filter_by(username='euirim').first():
         admin = User(
