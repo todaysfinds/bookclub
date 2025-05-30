@@ -4,14 +4,14 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
 from flask_migrate import Migrate
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from models import db, User, Admin, Attendance
+from models import db, Account, User, Attendance
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
 from dotenv import load_dotenv
 import pymysql
-pymysql.install_as_MySQLdb()
 
+pymysql.install_as_MySQLdb()
 load_dotenv()
 
 # Flask 앱 만들기 (웹앱의 본체)
@@ -35,39 +35,35 @@ login_manager.login_view = 'login'  # 로그인 안 했을 때 이동할 기본 
 
 # ---------- 유저 로딩 ---------- #
 @login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+def load_user(account_id):
+    return Account.query.get(int(account_id))
 
-# 관리자 계정 생성 + 같은 유저 건너뛰기
+# 관리자 계정 한 번만 생성
 with app.app_context():
-    if not User.query.filter_by(username='euirim').first():
-        admin = User(
+    if not Account.query.filter_by(username='euirim').first():
+        a = Account(
             username='euirim',
             password=generate_password_hash('0921', method='scrypt'),
             is_admin=True
         )
-        db.session.add(admin)
+        db.session.add(a)
         db.session.commit()
 
 
-
 # ---------- 라우팅 ---------- #
-
 @app.route('/')
 def home():
     return redirect(url_for('login'))
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET','POST'])
 def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        pw = request.form['password']
-        user = User.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password, pw):
-            login_user(user)
+    if request.method=='POST':
+        acct = Account.query.filter_by(username=request.form['username']).first()
+        if acct and check_password_hash(acct.password, request.form['password']):
+            login_user(acct)
             return redirect(url_for('index'))
         flash('로그인 실패')
-    return render_template('login.html')
+    return render_template('lndex.html')
 
 @app.route('/index')
 @login_required
