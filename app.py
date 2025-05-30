@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
 from flask_migrate import Migrate
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from models import User
+from models import db, User, Admin, Attendance
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
@@ -21,44 +21,25 @@ app.secret_key = 'todaysfinds0921'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('MYSQL_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app) # db 객체 생성
-
-# Flask-Migrate 초기 설정
+# Flask-Migrate 초기 설정, DB 연결
+db.init_app(app)
 migrate = Migrate(app, db)
 
-# 테이블 변경 시 1) flask db migrate -m "메시지" 2) flask db upgrade
+# 테이블 변경 시
+# 1) flask db migrate -m "메시지" 2) flask db upgrade
 
 login_manager = LoginManager() # 인스턴트 생성
 login_manager.init_app(app) # 애플리케이션에 적용
 login_manager.login_view = 'login'  # 로그인 안 했을 때 이동할 기본 페이지
 
 
-
-# ---------- 모델 ---------- # -> models.py에 똑같이
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    is_admin = db.Column(db.Boolean, default=False)
-    username = db.Column(db.String(200), unique=True, nullable=False)
-    password = db.Column(db.Text, nullable=False)
-
-    def __repr__(self):
-        return f'<User {self.username}>'
-
 # ---------- 유저 로딩 ---------- #
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-
-# 모델 기반 테이블 실제 DB에 생성 + 관리자 계정 생성
+# 관리자 계정 생성 + 같은 유저 건너뛰기
 with app.app_context():
-    with db.engine.connect() as conn:
-        conn.execute(text("DROP TABLE IF EXISTS user;"))
-        conn.commit()
-
-    db.create_all()
-
-    # 관리자 계정 생성 + 같은 유저 건너뛰기
     if not User.query.filter_by(username='euirim').first():
         admin = User(
             username='euirim',
@@ -67,6 +48,7 @@ with app.app_context():
         )
         db.session.add(admin)
         db.session.commit()
+
 
 
 # ---------- 라우팅 ---------- #
