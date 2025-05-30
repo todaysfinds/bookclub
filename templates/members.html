@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}멤버 관리{% endblock %}
+{% block content %}
+<h1>회원 관리</h1>
+
+<nav>
+  <a href="{{ url_for('index') }}">출석 입력</a> |
+  <a href="{{ url_for('members') }}">회원 관리</a>
+</nav>
+
+<!-- 신규 추가 폼 -->
+<form action="{{ url_for('add_member') }}" method="post">
+  <input name="username"   placeholder="이름" required>
+  <input name="age" type="number" placeholder="나이">
+  <input name="interest"   placeholder="관심분야">
+  <label><input type="checkbox" name="is_admin"> 운영진</label>
+  <button type="submit">추가</button>
+</form>
+
+<table border="1" cellpadding="4">
+  <thead>
+    <tr>
+      <th>#</th><th>이름</th><th>나이</th><th>관심분야</th><th>운영진</th><th>가입일</th><th>수정</th><th>삭제</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for u in users %}
+    <tr>
+      <form action="{{ url_for('edit_member', user_id=u.id) }}" method="post">
+        <td>{{ u.id }}</td>
+        <td><input name="username" value="{{ u.username }}"></td>
+        <td><input name="age" type="number" value="{{ u.age }}"></td>
+        <td><input name="interest" value="{{ u.interest }}"></td>
+        <td><input type="checkbox" name="is_admin" {% if u.is_admin %}checked{% endif %}></td>
+        <td>{{ u.join_date.strftime('%Y-%m-%d') }}</td>
+        <td><button type="submit">저장</button></td>
+      </form>
+      <td>
+        <form action="{{ url_for('delete_member', user_id=u.id) }}" method="post"
+              onsubmit="return confirm('정말 삭제할까요?');">
+          <button type="submit">삭제</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

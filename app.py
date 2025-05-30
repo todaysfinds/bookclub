@@ -44,7 +44,6 @@ with app.app_context():
         a = Account(
             username='euirim',
             password=generate_password_hash('0921', method='scrypt'),
-            is_admin=True
         )
         db.session.add(a)
         db.session.commit()
@@ -82,12 +81,46 @@ def check():
     user = User.query.filter_by(username='euirim').first()
     return '존재함' if user else '없음'
 
-@app.route('/members')
+# members 조회 & 수정 폼 렌더링
+@app.route('/members', methods=['GET'])
 @login_required
-def member_list():
-    users = User.query.order_by(User.is_admin.desc(), User.username.asc()).all()
+def members():
+    users = User.query.order_by(User.is_admin.desc(), User.id).all()
     return render_template('members.html', users=users)
 
+# 신규 회원 추가
+@app.route('/members/add', methods=['POST'])
+@login_required
+def add_member():
+    username = request.form['username']
+    age      = request.form.get('age') or None
+    interest = request.form.get('interest') or None
+    is_admin = bool(request.form.get('is_admin'))
+    u = User(username=username, age=age, interest=interest, is_admin=is_admin)
+    db.session.add(u)
+    db.session.commit()
+    return redirect(url_for('members'))
+
+# 회원 정보 수정
+@app.route('/members/edit/<int:user_id>', methods=['POST'])
+@login_required
+def edit_member(user_id):
+    u = User.query.get_or_404(user_id)
+    u.username   = request.form['username']
+    u.age        = request.form.get('age') or None
+    u.interest   = request.form.get('interest') or None
+    u.is_admin   = bool(request.form.get('is_admin'))
+    db.session.commit()
+    return redirect(url_for('members'))
+
+# 회원 삭제
+@app.route('/members/delete/<int:user_id>', methods=['POST'])
+@login_required
+def delete_member(user_id):
+    u = User.query.get_or_404(user_id)
+    db.session.delete(u)
+    db.session.commit()
+    return redirect(url_for('members'))
 
 
 # 디버그 모드 활성화
