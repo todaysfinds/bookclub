@@ -1,15 +1,355 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>독서모임 출석 체크</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>오늘의 출석</title>
+  <style>
+    /* ──────────────────────────────────────────
+       최소한의 스타일만 적용하되, 나중에
+       로고 컬러/테마 색상을 덮어씌우기 쉽도록 구성했습니다.
+       ────────────────────────────────────────── */
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    .logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .dropdown-container {
+      position: relative;
+      width: 100%;
+      max-width: 300px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .dropdown-list {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-top: none;
+      max-height: 150px;
+      overflow-y: auto;
+      z-index: 10;
+      display: none;
+    }
+    .dropdown-item {
+      padding: 8px;
+      cursor: pointer;
+    }
+    .dropdown-item:hover {
+      background-color: #f0f0f0;
+    }
+    .attendee-list {
+      margin-top: 2rem;
+    }
+    .attendee-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #eee;
+      padding: 8px 0;
+    }
+    .attendee-item span.name {
+      flex: 1;
+    }
+    .attendee-item button {
+      margin-left: 4px;
+      padding: 4px 8px;
+      font-size: 0.9rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .attendee-item button.attend {
+      background-color: #4caf50;
+      color: white;
+    }
+    .attendee-item button.late {
+      background-color: #ff9800;
+      color: white;
+    }
+    .attendee-item button.missed {
+      background-color: #f44336;
+      color: white;
+    }
+    .attendee-item button.delete {
+      background-color: #ddd;
+    }
+    .save-button {
+      margin-top: 2rem;
+      padding: 10px 16px;
+      background-color: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .save-button:disabled {
+      background-color: #90caf9;
+      cursor: not-allowed;
+    }
+    .message {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: #e91e63;
+    }
+  </style>
 </head>
 <body>
-    <h2>오늘의 출석</h2>
-    <form method="POST">
-        <input type="text" name="name" placeholder="이름 입력" required>
-        <button type="submit">출석</button>
-    </form>    
+
+  <!-- ─────────────────────────────────────
+       상단: 로고 (클릭하면 현재 페이지로 이동하게 처리)
+       ───────────────────────────────────── -->
+  <header>
+    <div class="logo" onclick="location.href='/'">📚 BookCheck</div>
+  </header>
+
+  <h2>오늘의 출석</h2>
+
+  <!-- ─────────────────────────────────────
+       1) 자동완성 + 선택 가능 입력창
+       ───────────────────────────────────── -->
+  <div class="dropdown-container">
+    <input
+      type="text"
+      id="nameInput"
+      placeholder="이름 입력 / 선택"
+      onfocus="showDropdown()"
+      oninput="filterDropdown()"
+      autocomplete="off"
+    />
+    <div id="dropdown" class="dropdown-list"></div>
+  </div>
+  <div id="inputMessage" class="message"></div>
+
+  <!-- ─────────────────────────────────────
+       2) 오늘 출석자 리스트
+       ───────────────────────────────────── -->
+  <div class="attendee-list" id="attendeeList"></div>
+
+  <!-- ─────────────────────────────────────
+       3) 최종 저장 버튼
+       ───────────────────────────────────── -->
+  <button id="saveBtn" class="save-button" disabled>전체 명단 저장</button>
+  <div id="saveMsg" class="message"></div>
+
+  <script>
+    // ─────────────────────────────────────────
+    // (0) 서버 측에서 Jinja로 전달된 회원 리스트
+    //     실제 운영 시에는 DB에서 조회한 값을 넘겨주면 됩니다.
+    // ─────────────────────────────────────────
+    const allMembers = {{ all_members | tojson }}; 
+
+    // ─────────────────────────────────────────
+    // (1) DOM 요소
+    // ─────────────────────────────────────────
+    const dropdown = document.getElementById("dropdown");
+    const nameInput = document.getElementById("nameInput");
+    const attendeeList = document.getElementById("attendeeList");
+    const saveBtn = document.getElementById("saveBtn");
+    const inputMessage = document.getElementById("inputMessage");
+    const saveMsg = document.getElementById("saveMsg");
+
+    // ─────────────────────────────────────────
+    // (2) 오늘 출석자 명단을 로컬 스토리지에서 불러오기
+    // ─────────────────────────────────────────
+    let attendees = JSON.parse(localStorage.getItem("today_attendees") || "[]");
+    renderAttendees();  // 페이지 로드 시, 저장된 데이터가 있으면 리스트로 그려준다.
+
+    // ─────────────────────────────────────────
+    // (3) 드롭다운 보이기 / 숨기기 / 필터링
+    // ─────────────────────────────────────────
+    function showDropdown() {
+      dropdown.style.display = "block";
+      renderDropdown(allMembers);
+    }
+
+    function hideDropdown() {
+      // 클릭 이벤트가 끝난 뒤 잠시 숨기기
+      setTimeout(() => {
+        dropdown.style.display = "none";
+      }, 100);
+    }
+
+    function filterDropdown() {
+      const query = nameInput.value.toLowerCase();
+      // 이름에 query가 포함된 것만 필터링
+      const filtered = allMembers.filter(name =>
+        name.toLowerCase().includes(query)
+      );
+      renderDropdown(filtered);
+    }
+
+    function renderDropdown(list) {
+      dropdown.innerHTML = "";
+      list.forEach(name => {
+        const item = document.createElement("div");
+        item.className = "dropdown-item";
+        item.textContent = name;
+        item.onclick = () => addAttendee(name);
+        dropdown.appendChild(item);
+      });
+    }
+
+    // ─────────────────────────────────────────
+    // (4) 출석자 추가 함수
+    // ─────────────────────────────────────────
+    function addAttendee(name) {
+      // 1) 빈 문자열 혹은 이미 추가된 이름이라면 무시
+      if (!name || attendees.includes(name)) {
+        inputMessage.textContent = attendees.includes(name)
+          ? "이미 추가된 회원입니다."
+          : "유효한 이름을 입력해주세요.";
+        setTimeout(() => (inputMessage.textContent = ""), 1200);
+        return;
+      }
+
+      // 2) attendees 배열에 추가
+      const now = new Date();
+      // state: "pending" (아직 출석/결석/도장 여부 선택 전)
+      attendees.push({ name: name, status: "pending", time: now.toISOString() });
+      saveToLocalStorage();
+      renderAttendees();
+
+      // 3) 입력창 초기화, 드롭다운 숨기기
+      nameInput.value = "";
+      hideDropdown();
+    }
+
+    // ─────────────────────────────────────────
+    // (5) 로컬 스토리지에 저장
+    // ─────────────────────────────────────────
+    function saveToLocalStorage() {
+      localStorage.setItem("today_attendees", JSON.stringify(attendees));
+      // 저장 데이터 유무에 따라 최종 저장 버튼 활성화
+      saveBtn.disabled = attendees.length === 0;
+      saveMsg.textContent = "";
+    }
+
+    // ─────────────────────────────────────────
+    // (6) attendees를 화면에 렌더링
+    // ─────────────────────────────────────────
+    function renderAttendees() {
+      attendeeList.innerHTML = "";
+      attendees.forEach((att, idx) => {
+        const div = document.createElement("div");
+        div.className = "attendee-item";
+        div.id = `attendee-${idx}`;
+        div.innerHTML = `
+          <span class="name">${att.name}</span>
+          <div>
+            <button class="attend" onclick="markStatus(${idx}, 'attended')">출석</button>
+            <button class="late" onclick="markStatus(${idx}, 'late')">지각</button>
+            <button class="missed" onclick="markStatus(${idx}, 'missed')">도장X</button>
+            <button class="delete" onclick="removeAttendee(${idx})">❌삭제</button>
+          </div>
+        `;
+        attendeeList.appendChild(div);
+
+        // 상태가 이미 정해진 경우, 버튼 색상/텍스트 업데이트
+        if (att.status !== "pending") {
+          updateStatusUI(idx);
+        }
+      });
+      saveBtn.disabled = attendees.length === 0;
+    }
+
+    // ─────────────────────────────────────────
+    // (7) 출석/지각/도장X 버튼 클릭 시
+    // ─────────────────────────────────────────
+    function markStatus(index, newStatus) {
+      attendees[index].status = newStatus;
+      // 클릭한 시점을 출석 시간으로 기록 (string 형태)
+      attendees[index].time = new Date().toISOString();
+      saveToLocalStorage();
+      updateStatusUI(index);
+    }
+
+    function updateStatusUI(index) {
+      const container = document.getElementById(`attendee-${index}`);
+      const att = attendees[index];
+      // 버튼들 숨기고, 상태 텍스트만 보여주도록 바꿔줍니다.
+      container.innerHTML = `
+        <span class="name">${att.name}</span>
+        <span>${statusText(att.status)}</span>
+        <button class="delete" onclick="removeAttendee(${index})">❌삭제</button>
+      `;
+    }
+
+    function statusText(status) {
+      if (status === "attended") return "✅ 출석";
+      if (status === "late") return "⏰ 지각";
+      if (status === "missed") return "❌ 도장X";
+      return "";
+    }
+
+    // ─────────────────────────────────────────
+    // (8) 출석자 삭제 함수
+    // ─────────────────────────────────────────
+    function removeAttendee(index) {
+      attendees.splice(index, 1);
+      saveToLocalStorage();
+      renderAttendees();
+    }
+
+    // ─────────────────────────────────────────
+    // (9) “전체 명단 저장” 버튼 클릭 시
+    //     - 최종 서버로 전송 (AJAX)
+    //     - 성공하면 localStorage 초기화
+    // ─────────────────────────────────────────
+    saveBtn.addEventListener("click", () => {
+      // JSON으로 보낼 데이터: [{name, status, time}, ...]
+      fetch("/api/save_attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attendees: attendees }),
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === "ok") {
+            saveMsg.textContent = "✅ 서버에 출석 명단이 저장되었습니다!";
+            localStorage.removeItem("today_attendees");
+            attendees = [];
+            renderAttendees();
+          } else {
+            saveMsg.textContent = "❌ 저장 중 문제가 발생했습니다.";
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          saveMsg.textContent = "❌ 네트워크 오류가 발생했습니다.";
+        });
+    });
+
+    // ─────────────────────────────────────────
+    // (10) 드롭다운 외부 클릭 시 닫기
+    // ─────────────────────────────────────────
+    document.addEventListener("click", function (event) {
+      if (!event.target.closest(".dropdown-container")) {
+        hideDropdown();
+      }
+    });
+  </script>
+
 </body>
 </html>

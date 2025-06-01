@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <!-- 1. 모바일 반응형 설정 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- 2. 페이지 타이틀 블록 -->
+  <title>{% block title %}오늘의 발견{% endblock %}</title>
+
+  <!-- 3. 공통 CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="{{ url_for('index') }}">출석 입력</a> |
+      <a href="{{ url_for('members') }}">회원 관리</a>
+    </nav>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
