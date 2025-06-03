@@ -6,7 +6,7 @@
 {% block content %}
 <h1>회원 정보 수정</h1>
 
-<form action="{{ url_for('edit_member', user_id=u.id) }}" method="post">
+<form action="{{ url_for('member.edit_member', user_id=u.id) }}" method="post">
   <!-- 이름 -->
   <div style="margin-bottom: 0.5rem;">
     <label>이름:</label>
@@ -68,7 +68,7 @@
     저장
   </button>
   <a
-    href="{{ url_for('members') }}"
+    href="{{ url_for('member.members') }}"
     style="
       margin-left: 1rem;
       text-decoration: none;

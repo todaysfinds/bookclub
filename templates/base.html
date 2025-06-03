@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{% block title %}BookCheck{% endblock %}</title>
+  <title>{% block title %}TodaysFinds{% endblock %}</title>
   <style>
     /* ─────────────────────────────────────────────────
        공통 CSS: 모바일/데스크탑 대응, 헤더 스타일
@@ -129,15 +129,14 @@
     <!-- 좌측 로고: index (출석 입력) 페이지로 연결 -->
     <a href="{{ url_for('home') }}" class="logo">
       <!-- 여기에 SVG나 이미지 태그 대신 텍스트 로고 예시 -->
-      📚 BookCheck
+      📚 TodaysFinds
     </a>
 
     <!-- 데스크탑용 네비게이션 -->
     <nav>
       <div class="nav-links">
-        <a href="{{ url_for('home') }}">출석</a>
-        <a href="{{ url_for('members') }}">회원관리</a>
-        <a href="{{ url_for('books') }}">히스토리</a>
+        <a href="{{ url_for('member.members') }}">회원</a>
+        <a href="{{ url_for('books') }}">기록</a>
         <a href="{{ url_for('about') }}" class="btn-about">소개</a>
         {% if current_user.is_authenticated %}
           <!-- 로그인된 상태라면 로그아웃 버튼 -->
@@ -159,9 +158,8 @@
 
   <!-- 모바일 네비게이션 토글 메뉴 (기본 숨김) -->
   <div class="mobile-nav" id="mobileNav">
-    <a href="{{ url_for('home') }}">출석</a>
-    <a href="{{ url_for('members') }}">회원관리</a>
-    <a href="{{ url_for('books') }}">히스토리</a>
+    <a href="{{ url_for('member.members') }}">회원</a>
+    <a href="{{ url_for('books') }}">기록</a>
     <a href="{{ url_for('about') }}">소개</a>
     {% if current_user.is_authenticated %}
       <a href="{{ url_for('logout') }}">로그아웃</a>

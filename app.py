@@ -16,6 +16,10 @@ pymysql.install_as_MySQLdb()
 from dotenv import load_dotenv
 load_dotenv()
 
+# Blueprint 생성 ──
+from flask import Blueprint
+bp = Blueprint('member', __name__)  # 'member'라는 이름으로 Blueprint 선언
+
 app = Flask(__name__)
 app.secret_key = 'todaysfinds0921'
 
@@ -63,12 +67,9 @@ def home():
     member_names = [u.username for u in User.query.order_by(User.username).all()]
     return render_template('index.html', all_members=member_names)
 
-
+# 로그인
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """
-    운영진 로그인. GET/POST 모두 허용.
-    """
     if request.method == 'POST':
         acct = Account.query.filter_by(username=request.form['username']).first()
         if acct and check_password_hash(acct.password, request.form['password']):
@@ -77,32 +78,31 @@ def login():
         flash('로그인 정보가 일치하지 않습니다.')
     return render_template('login.html')
 
-
+# 로그아웃
 @app.route('/logout')
 @login_required
 def logout():
-    """
-    로그아웃 처리 (로그인된 사용자만 가능).
-    """
     logout_user()
     return redirect(url_for('login'))
 
 
 @app.route('/index')
 def index_redirect():
-    """
-    '/index'로 들어오면 루트('/')로 리다이렉트합니다.
-    """
     return redirect(url_for('home'))
 
 # ───────────────────────────────────────────────────
 #  회원 관리 페이지: 조회 (GET)
 #  (/members 라우트는 기존과 동일)
 # ───────────────────────────────────────────────────
-@app.route('/members', methods=['GET'])
+@bp.route('/members', methods=['GET'])
 def members():
-    users = User.query.order_by(User.username).all()
-
+    # 1) 운영진만 뽑아서 id(숫자) 순서로 정렬
+    admins = User.query.filter_by(is_admin=True).order_by(User.id).all()
+    # 2) 일반 회원만 뽑아서 username(이름) 순서로 정렬
+    others = User.query.filter_by(is_admin=False).order_by(User.username).all()
+    # 3) 두 리스트를 합치면, 운영진이 위에(숫자 순), 일반 회원이 아래(이름 순)
+    users = admins + others
+    
     summary = []
     for u in users:
         # 정상 출석(attended 또는 late) 횟수 집계
@@ -115,12 +115,12 @@ def members():
             'missed_count': missed
         })
 
-    return render_template('members.html', data=summary, uers=users)
+    return render_template('members.html', data=summary, users=users)
 
 # ───────────────────────────────────────────────────
 # 신규 회원 추가 (POST)
 # ───────────────────────────────────────────────────
-@app.route('/members/add', methods=['POST'])
+@bp.route('/members/add', methods=['POST'])
 @login_required
 def add_member():
     username = request.form['username'].strip()
@@ -140,13 +140,13 @@ def add_member():
             db.session.commit()
         else:
             flash('이미 등록된 회원 이름입니다.')
-    return redirect(url_for('members'))
+    return redirect(url_for('member.members'))
 
 
 # ───────────────────────────────────────────────────
 # 회원 수정 폼 보여주기 (GET)
 # ───────────────────────────────────────────────────
-@app.route('/members/edit/<int:user_id>', methods=['GET'])
+@bp.route('/members/edit/<int:user_id>', methods=['GET'])
 @login_required
 def edit_member_form(user_id):
     # 운영진만 회원 정보를 수정할 수 있도록 제한
@@ -159,7 +159,7 @@ def edit_member_form(user_id):
 # ───────────────────────────────────────────────────
 # 회원 정보 실제 수정 처리 (POST)
 # ───────────────────────────────────────────────────
-@app.route('/members/edit/<int:user_id>', methods=['POST'])
+@bp.route('/members/edit/<int:user_id>', methods=['POST'])
 @login_required
 def edit_member(user_id):
     # 운영진만 수정 가능
@@ -177,13 +177,13 @@ def edit_member(user_id):
     # 1) 새 이름이 유효한지 (빈 문자열이 아닌지)
     if not new_username:
         flash('이름을 입력해주세요.')
-        return redirect(url_for('edit_member_form', user_id=u.id))
+        return redirect(url_for('member.edit_member_form', user_id=u.id))
 
     # 2) 새 이름이 이미 다른 회원에 사용 중인지 확인 (중복 검사)
     exists = User.query.filter_by(username=new_username).first()
     if exists and exists.id != u.id:
         flash('이미 존재하는 이름입니다.')
-        return redirect(url_for('edit_member_form', user_id=u.id))
+        return redirect(url_for('member.edit_member_form', user_id=u.id))
 
     # 3) 모든 값이 유효하면, 실제로 DB 레코드를 업데이트
     u.username = new_username
@@ -193,18 +193,18 @@ def edit_member(user_id):
 
     db.session.commit()
     flash('회원 정보가 수정되었습니다.')
-    return redirect(url_for('members'))
+    return redirect(url_for('member.members'))
 
 # ───────────────────────────────────────────────────
 # 회원 삭제: POST 요청은 로그인된 운영진만 가능
 # ───────────────────────────────────────────────────
-@app.route('/members/delete/<int:user_id>', methods=['POST'])
+@bp.route('/members/delete/<int:user_id>', methods=['POST'])
 @login_required
 def delete_member(user_id):
     u = User.query.get_or_404(user_id)
     db.session.delete(u)
     db.session.commit()
-    return redirect(url_for('members'))
+    return redirect(url_for('member.members'))
 
 
 @app.route('/books')
@@ -262,6 +262,8 @@ def save_attendance():
 def about():
     return render_template('about.html')
 
+# ── Blueprint를 앱에 등록 ──
+app.register_blueprint(bp)
 
 # 디버그 모드 활성화
 if __name__ == '__main__':
