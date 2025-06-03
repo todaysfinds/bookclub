@@ -95,12 +95,12 @@ def index_redirect():
     """
     return redirect(url_for('home'))
 
-
+# ───────────────────────────────────────────────────
+#  회원 관리 페이지: 조회 (GET)
+#  (/members 라우트는 기존과 동일)
+# ───────────────────────────────────────────────────
 @app.route('/members', methods=['GET'])
 def members():
-    """
-    회원 관리 페이지 (조회만): 로그인 없이 모두에게 공개합니다.
-    """
     users = User.query.order_by(User.username).all()
 
     summary = []
@@ -115,20 +115,27 @@ def members():
             'missed_count': missed
         })
 
-    return render_template('members.html', data=summary)
+    return render_template('members.html', data=summary, uers=users)
 
-
+# ───────────────────────────────────────────────────
+# 신규 회원 추가 (POST)
+# ───────────────────────────────────────────────────
 @app.route('/members/add', methods=['POST'])
 @login_required
 def add_member():
-    """
-    신규 회원 추가: POST 요청은 로그인된 운영진만 가능.
-    """
     username = request.form['username'].strip()
+    age      = request.form.get('age') or None
+    interest = request.form.get('interest') or None
+    is_admin = bool(request.form.get('is_admin'))
     if username:
         exists = User.query.filter_by(username=username).first()
         if not exists:
-            new_user = User(username=username)
+            new_user = User(
+                username=username,
+                age=age,
+                interest=interest,
+                is_admin=is_admin
+            )
             db.session.add(new_user)
             db.session.commit()
         else:
@@ -136,30 +143,64 @@ def add_member():
     return redirect(url_for('members'))
 
 
+# ───────────────────────────────────────────────────
+# 회원 수정 폼 보여주기 (GET)
+# ───────────────────────────────────────────────────
+@app.route('/members/edit/<int:user_id>', methods=['GET'])
+@login_required
+def edit_member_form(user_id):
+    # 운영진만 회원 정보를 수정할 수 있도록 제한
+    if not current_user.is_authenticated:
+        return redirect(url_for('login'))
+
+    u = User.query.get_or_404(user_id)
+    return render_template('members_edit.html', u=u)
+
+# ───────────────────────────────────────────────────
+# 회원 정보 실제 수정 처리 (POST)
+# ───────────────────────────────────────────────────
 @app.route('/members/edit/<int:user_id>', methods=['POST'])
 @login_required
 def edit_member(user_id):
-    """
-    회원 이름 수정: POST 요청은 로그인된 운영진만 가능.
-    """
+    # 운영진만 수정 가능
+    if not current_user.is_authenticated:
+        return redirect(url_for('login'))
+
     u = User.query.get_or_404(user_id)
-    new_name = request.form['new_username'].strip()
-    if new_name:
-        exists = User.query.filter_by(username=new_name).first()
-        if not exists or exists.id == u.id:
-            u.username = new_name
-            db.session.commit()
-        else:
-            flash('이미 존재하는 이름입니다.')
+
+    # 폼 필드 이름(member_edit.html에 정의된 name 속성)과 맞춰서 가져옵니다.
+    new_username = request.form['username'].strip()
+    new_age      = request.form.get('age') or None
+    new_interest = request.form.get('interest') or None
+    new_is_admin = True if request.form.get('is_admin') == 'on' else False
+
+    # 1) 새 이름이 유효한지 (빈 문자열이 아닌지)
+    if not new_username:
+        flash('이름을 입력해주세요.')
+        return redirect(url_for('edit_member_form', user_id=u.id))
+
+    # 2) 새 이름이 이미 다른 회원에 사용 중인지 확인 (중복 검사)
+    exists = User.query.filter_by(username=new_username).first()
+    if exists and exists.id != u.id:
+        flash('이미 존재하는 이름입니다.')
+        return redirect(url_for('edit_member_form', user_id=u.id))
+
+    # 3) 모든 값이 유효하면, 실제로 DB 레코드를 업데이트
+    u.username = new_username
+    u.age      = new_age
+    u.interest = new_interest
+    u.is_admin = new_is_admin
+
+    db.session.commit()
+    flash('회원 정보가 수정되었습니다.')
     return redirect(url_for('members'))
 
-
+# ───────────────────────────────────────────────────
+# 회원 삭제: POST 요청은 로그인된 운영진만 가능
+# ───────────────────────────────────────────────────
 @app.route('/members/delete/<int:user_id>', methods=['POST'])
 @login_required
 def delete_member(user_id):
-    """
-    회원 삭제: POST 요청은 로그인된 운영진만 가능.
-    """
     u = User.query.get_or_404(user_id)
     db.session.delete(u)
     db.session.commit()
@@ -216,6 +257,10 @@ def save_attendance():
 
     db.session.commit()
     return jsonify({'status': 'ok'}), 200
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
 
 
 # 디버그 모드 활성화

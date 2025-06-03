@@ -1,25 +1,202 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <!-- 1. 모바일 반응형 설정 -->
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}BookCheck{% endblock %}</title>
+  <style>
+    /* ─────────────────────────────────────────────────
+       공통 CSS: 모바일/데스크탑 대응, 헤더 스타일
+       ───────────────────────────────────────────────── */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      line-height: 1.5;
+      background: #f9f9f9;
+      color: #333;
+    }
+    header {
+      background-color: #ffffff;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 0.5rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    /* 로고 스타일 */
+    .logo {
+      font-size: 1.25rem;
+      font-weight: bold;
+      color: #2c3e50;
+      text-decoration: none;
+    }
+    /* 메인 네비게이션: 데스크탑 */
+    nav .nav-links {
+      display: flex;
+      gap: 1rem;
+    }
+    nav .nav-links a {
+      text-decoration: none;
+      color: #2c3e50;
+      font-size: 1rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+    }
+    nav .nav-links a:hover {
+      background-color: #f0f0f0;
+    }
+    /* 모바일용 햄버거 */
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      cursor: pointer;
+      gap: 4px;
+    }
+    .hamburger span {
+      width: 24px;
+      height: 3px;
+      background-color: #2c3e50;
+      border-radius: 2px;
+    }
+    /* 모바일 네비게이션 (숨겨진 상태에서 토글) */
+    .mobile-nav {
+      display: none;
+      flex-direction: column;
+      background-color: #ffffff;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .mobile-nav a {
+      padding: 0.75rem 1rem;
+      border-top: 1px solid #e0e0e0;
+      text-decoration: none;
+      color: #2c3e50;
+      font-size: 1rem;
+    }
+    .mobile-nav a:hover {
+      background-color: #f0f0f0;
+    }
 
-  <!-- 2. 페이지 타이틀 블록 -->
-  <title>{% block title %}오늘의 발견{% endblock %}</title>
+    /* 반응형: 화면 폭이 768px 미만일 때 */
+    @media (max-width: 768px) {
+      nav .nav-links {
+        display: none;
+      }
+      .hamburger {
+        display: flex;
+      }
+    }
 
-  <!-- 3. 공통 CSS -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    /* 본문 컨테이너 */
+    .container {
+      max-width: 480px;
+      margin: 2rem auto;
+      background: #ffffff;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    /* 공통 버튼 스타일 */
+    .btn {
+      display: inline-block;
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-login { background-color: #3498db; color: #fff; }
+    .btn-logout { background-color: #e74c3c; color: #fff; }
+    .btn-member { background-color: #2ecc71; color: #fff; }
+    .btn-history { background-color: #9b59b6; color: #fff; }
+    .btn-about { background-color: #f39c12; color: #fff; }
+  </style>
+  {% block extra_head %}{% endblock %}
 </head>
 <body>
+  <!-- ───────────────────────────────────────────────────────────
+       1) 헤더: 좌측 로고, 우측 네비게이션 (데스크탑+모바일)
+       ─────────────────────────────────────────────────────────── -->
   <header>
+    <!-- 좌측 로고: index (출석 입력) 페이지로 연결 -->
+    <a href="{{ url_for('home') }}" class="logo">
+      <!-- 여기에 SVG나 이미지 태그 대신 텍스트 로고 예시 -->
+      📚 BookCheck
+    </a>
+
+    <!-- 데스크탑용 네비게이션 -->
     <nav>
-      <a href="{{ url_for('index') }}">출석 입력</a> |
-      <a href="{{ url_for('members') }}">회원 관리</a>
+      <div class="nav-links">
+        <a href="{{ url_for('home') }}">출석</a>
+        <a href="{{ url_for('members') }}">회원관리</a>
+        <a href="{{ url_for('books') }}">히스토리</a>
+        <a href="{{ url_for('about') }}" class="btn-about">소개</a>
+        {% if current_user.is_authenticated %}
+          <!-- 로그인된 상태라면 로그아웃 버튼 -->
+          <a href="{{ url_for('logout') }}" class="btn btn-logout">로그아웃</a>
+        {% else %}
+          <!-- 비로그인 상태라면 로그인 버튼 -->
+          <a href="{{ url_for('login') }}" class="btn btn-login">로그인</a>
+        {% endif %}
+      </div>
+
+      <!-- 모바일용 햄버거 아이콘 -->
+      <div class="hamburger" onclick="toggleMobileNav()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
     </nav>
   </header>
-  <main>
+
+  <!-- 모바일 네비게이션 토글 메뉴 (기본 숨김) -->
+  <div class="mobile-nav" id="mobileNav">
+    <a href="{{ url_for('home') }}">출석</a>
+    <a href="{{ url_for('members') }}">회원관리</a>
+    <a href="{{ url_for('books') }}">히스토리</a>
+    <a href="{{ url_for('about') }}">소개</a>
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('logout') }}">로그아웃</a>
+    {% else %}
+      <a href="{{ url_for('login') }}">로그인</a>
+    {% endif %}
+  </div>
+
+  <!-- ───────────────────────────────────────────────────────────
+       2) 본문 컨테이너: 실제 페이지별로 아래 block을 채웁니다.
+       ─────────────────────────────────────────────────────────── -->
+  <div class="container">
     {% block content %}{% endblock %}
-  </main>
+  </div>
+
+  <!-- ───────────────────────────────────────────────────────────
+       3) 모바일 네비게이션 토글 스크립트
+       ─────────────────────────────────────────────────────────── -->
+  <script>
+    function toggleMobileNav() {
+      const nav = document.getElementById('mobileNav');
+      if (nav.style.display === 'flex') {
+        nav.style.display = 'none';
+      } else {
+        nav.style.display = 'flex';
+      }
+    }
+    // 화면 크기 변경 시 모바일 네비 초기화
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 768) {
+        document.getElementById('mobileNav').style.display = 'none';
+      }
+    });
+  </script>
+
+  {% block extra_scripts %}{% endblock %}
 </body>
 </html>
