@@ -24,7 +24,7 @@ app = Flask(__name__)
 app.secret_key = 'todaysfinds0921'
 
 # MySQL 연결 설정 (환경 변수로부터 불러옵니다)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('MYSQL_URL')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # SQLAlchemy, Migrate, LoginManager 초기화
