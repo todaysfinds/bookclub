@@ -28,12 +28,23 @@ class User(db.Model):
     def __repr__(self):
         return f'<User {str(self.id).zfill(3)} - {self.username}>'
 
+class MeetingDay(db.Model):
+    """실제 모임일을 기록하는 테이블"""
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date, nullable=False, unique=True)
+    description = db.Column(db.String(200))  # 모임 설명 (예: "6월 1주차 모임")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<MeetingDay {self.date}>'
+
 class Attendance(db.Model):
     id            = db.Column(db.Integer, primary_key=True)
     user_id       = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     date          = db.Column(db.Date, default=date.today, nullable=False)
-    status        = db.Column(db.String(20), nullable=False)  # 'attended' 또는 'late'
+    status        = db.Column(db.String(20), nullable=False)  # 'attended', 'late', 'absent'
     timestamp     = db.Column(db.DateTime, default=datetime.utcnow)
     stamp_missing = db.Column(db.Boolean, default=False)
+    absence_reason = db.Column(db.String(200))  # 결석 사유
     def __repr__(self):
         return f'<Attendance {self.user.name} {self.date} {self.status}>'

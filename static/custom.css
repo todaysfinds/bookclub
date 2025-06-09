@@ -1,0 +1,131 @@
+body {
+  background-color: #DACCC5;
+}
+
+a {
+  text-decoration: none;
+}
+/* ───────────────────────────────────────────────────────
+   1) 드롭다운 박스 스타일 
+   (.dropdown-list)
+─────────────────────────────────────────────────────── */
+.dropdown-list {
+  position: absolute;           /* 부모(relative) 안에서 절대 위치 */
+  top: 100%;                    /* 입력창 바로 아래 */
+  left: 0;                      
+  right: 0;
+  background-color: white;      /* 하얀 배경 */
+  border: 1px solid #d1d5db;    /* 연한 회색 테두리 */
+  border-radius: 0.375rem;      /* 6px 반경 (rounded-md) */
+  max-height: 12rem;            /* 높이 제한 (192px) */
+  overflow-y: auto;             /* 내부 스크롤 */
+  z-index: 50;                  /* 카드보다 위에 뜨도록 */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ───────────────────────────────────────────────────────
+   2) 드롭다운 아이템(각 이름) 스타일 
+   (.dropdown-item)
+─────────────────────────────────────────────────────── */
+.dropdown-item {
+  padding: 0.5rem 0.75rem;       /* 8px 12px */
+  font-size: 0.95rem;            /* 약간 작은 텍스트 */
+  cursor: pointer;
+  color: #1f2937;                /* 진한 회색 (gray-800) */
+  background-color: white;
+}
+.dropdown-item:hover {
+  background-color: #f3f4f6;     /* 연한 회색 (gray-100) */
+}
+
+/* ───────────────────────────────────────────────────────
+   3) attendee-list 내부 항목 (.attendee-item) 스타일
+─────────────────────────────────────────────────────── */
+.attendee-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background-color: #f9fafb;     /* 아주 옅은 회색 (gray-50) */
+  border-radius: 0.375rem;       /* 6px 반경 */
+}
+.attendee-item .name {
+  font-weight: 500;
+  color: #1f2937;                /* gray-800 */
+}
+/* 필요하다면 “출석/지각/도장X/삭제” 버튼들에도 클래스 지정 후 아래처럼 스타일링 가능합니다. */
+/*
+.attendee-item button.attend { background-color: #10b981; color: white; }
+.attendee-item button.late   { background-color: #f59e0b; color: white; }
+.attendee-item button.missed { background-color: #ef4444; color: white; }
+.attendee-item button.delete { background-color: transparent; color: #6b7280; }
+*/
+
+/* ───────────────────────────────────────────────────────
+   4) 전체 명단 저장 버튼 (.btn-main)
+─────────────────────────────────────────────────────── */
+.btn-main {
+  background-color: #3C1F1A;     /* 진한 브라운 */
+  color: white;
+  padding: 0.5rem 1rem;          /* 8px 16px */
+  border-radius: 0.375rem;       /* 6px 반경 */
+  transition: background-color 0.2s ease;
+}
+.btn-main:hover {
+  background-color: #2e1714;     /* 더 진한 브라운 */
+}
+
+/* 메인 컨테이너 중앙 정렬 */
+.center-container {
+  max-width: 480px;
+  margin: 60px auto;
+  padding: 30px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.06);
+  text-align: center;
+}
+
+/* 검색창 스타일 */
+.search-input {
+  width: 100%;
+  max-width: 400px;
+  padding: 14px 18px;
+  font-size: 1.1rem;
+  border: 1px solid #ccc;
+  border-radius: 999px;
+  margin-bottom: 24px;
+}
+
+/* 명단 저장 버튼 */
+.save-button {
+  margin-top: 30px;
+  padding: 10px 20px;
+  background-color: #3C1F1A;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.save-button:hover {
+  background-color: #5a3028;
+}
+
+.floating-save-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 12px 18px;
+  background-color: #3C1F1A;
+  color: white;
+  font-size: 0.95rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  z-index: 1000;
+}
+.floating-save-btn:hover {
+  background-color: #5a3028;
+}

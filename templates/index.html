@@ -1,357 +1,600 @@
 {% extends 'base.html' %}
 
-{% block title %}로그인 | BookCheck{% endblock %}
+{% block title %}TodaysFinds{% endblock %}
 
 {% block extra_head %}
-  <style>
-    /* ──────────────────────────────────────────
-       최소한의 스타일만 적용하되, 나중에
-       로고 컬러/테마 색상을 덮어씌우기 쉽도록 구성했습니다.
-       ────────────────────────────────────────── */
-    body {
-      font-family: sans-serif;
-      padding: 2rem;
-      max-width: 480px;
-      margin: 0 auto;
-    }
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2rem;
-    }
-    .logo {
-      font-size: 1.5rem;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .dropdown-container {
-      position: relative;
-      width: 100%;
-      max-width: 300px;
-    }
-    input[type="text"] {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      box-sizing: border-box;
-    }
-    .dropdown-list {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: #fff;
-      border: 1px solid #ccc;
-      border-top: none;
-      max-height: 150px;
-      overflow-y: auto;
-      z-index: 10;
-      display: none;
-    }
-    .dropdown-item {
-      padding: 8px;
-      cursor: pointer;
-    }
-    .dropdown-item:hover {
-      background-color: #f0f0f0;
-    }
-    .attendee-list {
-      margin-top: 2rem;
-    }
-    .attendee-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid #eee;
-      padding: 8px 0;
-    }
-    .attendee-item span.name {
-      flex: 1;
-    }
-    .attendee-item button {
-      margin-left: 4px;
-      padding: 4px 8px;
-      font-size: 0.9rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .attendee-item button.attend {
-      background-color: #4caf50;
-      color: white;
-    }
-    .attendee-item button.late {
-      background-color: #ff9800;
-      color: white;
-    }
-    .attendee-item button.missed {
-      background-color: #f44336;
-      color: white;
-    }
-    .attendee-item button.delete {
-      background-color: #ddd;
-    }
-    .save-button {
-      margin-top: 2rem;
-      padding: 10px 16px;
-      background-color: #2196f3;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      font-size: 1rem;
-      cursor: pointer;
-    }
-    .save-button:disabled {
-      background-color: #90caf9;
-      cursor: not-allowed;
-    }
-    .message {
-      margin-top: 0.5rem;
-      font-size: 0.9rem;
-      color: #e91e63;
-    }
-  </style>
+  <!-- (추가 헤드 요소가 없다면 비워 둡니다) -->
 {% endblock %}
 
 {% block content %}
+<!-- 구글 메인처럼 깔끔한 중앙 정렬 디자인 -->
+<div class="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] px-4">
+  
+  <!-- 메인 타이틀 -->
+  <h1 class="text-5xl font-medium text-[#3C1F1A] mb-12 tracking-tight">
+    오늘의 출석
+  </h1>
 
-  <!-- ─────────────────────────────────────
-       상단: 로고 (클릭하면 현재 페이지로 이동하게 처리)
-       ───────────────────────────────────── -->
-
-  <h2>오늘의 출석</h2>
-
-  <!-- ─────────────────────────────────────
-       1) 자동완성 + 선택 가능 입력창
-       ───────────────────────────────────── -->
-  <div class="dropdown-container">
-    <input
-      type="text"
-      id="nameInput"
-      placeholder="이름 입력 / 선택"
-      onfocus="showDropdown()"
-      oninput="filterDropdown()"
-      autocomplete="off"
-    />
-    <div id="dropdown" class="dropdown-list"></div>
+  <!-- 검색/선택 영역 - 반응형 개선 -->
+  <div class="w-full max-w-lg xl:max-w-xl mb-8">
+    <div class="relative">
+      <input
+        type="text"
+        id="nameInput"
+        placeholder="이름 입력 또는 선택"
+        onfocus="showDropdown()"
+        oninput="filterDropdown()"
+        autocomplete="off"
+        class="w-full border-2 border-gray-300 px-6 py-2 rounded-full text-lg focus:outline-none focus:border-[#3C1F1A]"
+      />
+      <div id="dropdown" class="dropdown-list"></div>
+    </div>
+    <!-- 디버깅용 시간 표시 -->
+    <div class="text-xs text-gray-500 mt-2 text-center" id="timeInfo"></div>
+    <!-- 유효성 메시지 -->
+    <div id="inputMessage" class="text-sm text-red-500 mt-2 text-center opacity-0"></div>
   </div>
-  <div id="inputMessage" class="message"></div>
 
-  <!-- ─────────────────────────────────────
-       2) 오늘 출석자 리스트
-       ───────────────────────────────────── -->
-  <div class="attendee-list" id="attendeeList"></div>
+  <!-- 출석 리스트 - 반응형 개선 -->
+  <div class="w-full max-w-lg xl:max-w-xl">
+    <div id="attendeeList" class="space-y-4 mb-8"></div>
+    
+    <!-- 출석 완료 버튼 -->
+    <div class="text-center" id="completeSection" style="display: none;">
+      <button
+        id="completeBtn"
+        class="bg-[#3C1F1A] text-white px-8 py-3 rounded-full font-medium hover:opacity-90 transition-opacity"
+        onclick="completeAttendance()"
+      >
+        출석 완료
+      </button>
+    </div>
 
-  <!-- ─────────────────────────────────────
-       3) 최종 저장 버튼
-       ───────────────────────────────────── -->
-  <button id="saveBtn" class="save-button" disabled>전체 명단 저장</button>
-  <div id="saveMsg" class="message"></div>
 
+  </div>
+
+</div>
+
+<!-- 지각비 팝업 -->
+<div id="latePopup" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-lg p-6 max-w-sm mx-4">
+    <h3 class="text-lg font-semibold text-[#3C1F1A] mb-3">⏰ 지각 안내</h3>
+    <p class="text-gray-700 mb-4">지각입니다.<br>지각비 천 원 입금해 주세요💰</p>
+    <div class="flex space-x-3">
+      <button onclick="confirmLate()" class="flex-1 bg-[#3C1F1A] text-white py-2 px-4 rounded">확인</button>
+      <button onclick="closeLatePopup()" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- 결석 사유 팝업 -->
+<div id="absencePopup" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-lg p-6 max-w-sm mx-4">
+    <h3 class="text-lg font-semibold text-[#3C1F1A] mb-3">🚫 결석 사유</h3>
+    <textarea id="absenceReason" placeholder="(선택)" class="w-full border border-gray-300 rounded p-3 mb-4 h-20 resize-none"></textarea>
+    <div class="flex space-x-3">
+      <button onclick="confirmAbsence()" class="flex-1 bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600">결석 처리</button>
+      <button onclick="closeAbsencePopup()" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded hover:bg-gray-400">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- 참여비 확인 팝업 -->
+<div id="paymentPopup" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-xl p-8 max-w-md mx-4 shadow-2xl">
+    <div class="text-center mb-6">
+      <div class="text-4xl mb-3">💰</div>
+      <h3 class="text-xl font-semibold text-gray-800 mb-2">참여비 입금하셨나요?</h3>
+    </div>
+    <div class="flex space-x-4">
+      <button onclick="confirmPayment(true)" class="flex-1 bg-[#3C1F1A] text-white py-3 px-6 rounded-lg text-base font-medium hover:opacity-90 transition-opacity">
+        했어요
+      </button>
+      <button onclick="confirmPayment(false)" class="flex-1 bg-gray-100 text-gray-700 py-3 px-6 rounded-lg text-base font-medium hover:bg-gray-200 transition-colors">
+        할게요
+      </button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
-
 {% block extra_scripts %}
+<script>
+  // 서버에서 넘겨준 all_members 배열을 JS로 받기
+  const allMembers = {{ all_members | tojson | safe }};
 
-  <script>
-    // ─────────────────────────────────────────
-    // (0) 서버 측에서 Jinja로 전달된 회원 리스트
-    //     실제 운영 시에는 DB에서 조회한 값을 넘겨주면 됩니다.
-    // ─────────────────────────────────────────
-    const allMembers = {{ all_members | tojson }}; 
+  // DOM 요소들
+  const dropdown = document.getElementById("dropdown");
+  const nameInput = document.getElementById("nameInput");
+  const attendeeList = document.getElementById("attendeeList");
+  const inputMessage = document.getElementById("inputMessage");
+  const latePopup = document.getElementById("latePopup");
+  const absencePopup = document.getElementById("absencePopup");
+  const absenceReason = document.getElementById("absenceReason");
+  const completeSection = document.getElementById("completeSection");
 
-    // ─────────────────────────────────────────
-    // (1) DOM 요소
-    // ─────────────────────────────────────────
-    const dropdown = document.getElementById("dropdown");
-    const nameInput = document.getElementById("nameInput");
-    const attendeeList = document.getElementById("attendeeList");
-    const saveBtn = document.getElementById("saveBtn");
-    const inputMessage = document.getElementById("inputMessage");
-    const saveMsg = document.getElementById("saveMsg");
+  // 전역 변수
+  let attendees = JSON.parse(localStorage.getItem("today_attendees") || "[]");
+  let currentProcessingIndex = -1;
+  
+  // 출석 횟수 (localStorage + 서버 동기화)
+  let memberAttendanceCounts = {};
+  
+  // 모임 시간 설정 (요일별)
+  const MEETING_TIMES = {
+    6: { // 토요일
+      lateStartHour: 10,
+      lateStartMinute: 1,
+      lateEndHour: 12,
+      lateEndMinute: 0
+    },
+    4: { // 목요일
+      lateStartHour: 19,
+      lateStartMinute: 1,
+      lateEndHour: 21,
+      lateEndMinute: 0
+    }
+  };
 
-    // ─────────────────────────────────────────
-    // (2) 오늘 출석자 명단을 로컬 스토리지에서 불러오기
-    // ─────────────────────────────────────────
-    let attendees = JSON.parse(localStorage.getItem("today_attendees") || "[]");
-    renderAttendees();  // 페이지 로드 시, 저장된 데이터가 있으면 리스트로 그려준다.
+  // 초기화
+  initializeAttendanceCounts();
+  renderAttendees();
 
-    // ─────────────────────────────────────────
-    // (3) 드롭다운 보이기 / 숨기기 / 필터링
-    // ─────────────────────────────────────────
-    function showDropdown() {
+  // 지각 시간 체크 함수
+  function isLateTime() {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    
+    const meetingTime = MEETING_TIMES[dayOfWeek];
+    if (!meetingTime) {
+      return false; // 모임일이 아니면 지각 없음
+    }
+    
+    const lateStart = meetingTime.lateStartHour * 60 + meetingTime.lateStartMinute;
+    const lateEnd = meetingTime.lateEndHour * 60 + meetingTime.lateEndMinute;
+    const currentTime = currentHour * 60 + currentMinute;
+    
+    // 지각 시간대에만 true 반환 (10:01-12:00, 19:01-21:00)
+    return currentTime >= lateStart && currentTime <= lateEnd;
+  }
+
+  // 드롭다운 관련 함수들
+  function showDropdown() {
+    if (allMembers.length > 0) {
       dropdown.style.display = "block";
       renderDropdown(allMembers);
     }
-
-    function hideDropdown() {
-      // 클릭 이벤트가 끝난 뒤 잠시 숨기기
-      setTimeout(() => {
-        dropdown.style.display = "none";
-      }, 100);
-    }
-
-    function filterDropdown() {
-      const query = nameInput.value.toLowerCase();
-      // 이름에 query가 포함된 것만 필터링
+  }
+  
+  function hideDropdown() {
+    dropdown.style.display = "none";
+  }
+  
+  function filterDropdown() {
+    const query = nameInput.value.toLowerCase().trim();
+    if (query === "") {
+      renderDropdown(allMembers);
+    } else {
       const filtered = allMembers.filter(name =>
         name.toLowerCase().includes(query)
       );
       renderDropdown(filtered);
     }
-
-    function renderDropdown(list) {
-      dropdown.innerHTML = "";
-      list.forEach(name => {
-        const item = document.createElement("div");
-        item.className = "dropdown-item";
-        item.textContent = name;
-        item.onclick = () => addAttendee(name);
-        dropdown.appendChild(item);
-      });
+  }
+  
+  function renderDropdown(list) {
+    dropdown.innerHTML = "";
+    if (list.length === 0) {
+      const noResult = document.createElement("div");
+      noResult.className = "dropdown-item text-gray-500";
+      noResult.textContent = "검색 결과가 없습니다";
+      dropdown.appendChild(noResult);
+      return;
     }
+    
+    list.forEach(name => {
+      const item = document.createElement("div");
+      item.className = "dropdown-item";
+      item.textContent = name;
+      item.onclick = () => addAttendee(name);
+      dropdown.appendChild(item);
+    });
+  }
 
-    // ─────────────────────────────────────────
-    // (4) 출석자 추가 함수
-    // ─────────────────────────────────────────
-    function addAttendee(name) {
-      // 1) 빈 문자열 혹은 이미 추가된 이름이라면 무시
-      if (!name || attendees.includes(name)) {
-        inputMessage.textContent = attendees.includes(name)
-          ? "이미 추가된 회원입니다."
-          : "유효한 이름을 입력해주세요.";
-        setTimeout(() => (inputMessage.textContent = ""), 1200);
-        return;
-      }
-
-      // 2) attendees 배열에 추가
-      const now = new Date();
-      // state: "pending" (아직 출석/결석/도장 여부 선택 전)
-      attendees.push({ name: name, status: "pending", time: now.toISOString() });
-      saveToLocalStorage();
-      renderAttendees();
-
-      // 3) 입력창 초기화, 드롭다운 숨기기
-      nameInput.value = "";
-      hideDropdown();
+  // 출석자 추가 함수
+  function addAttendee(name) {
+    if (!name || attendees.some(att => att.name === name)) {
+      showMessage(inputMessage, attendees.some(att => att.name === name)
+        ? "이미 추가된 회원입니다."
+        : "유효한 이름을 입력해주세요.", "error");
+      return;
     }
-
-    // ─────────────────────────────────────────
-    // (5) 로컬 스토리지에 저장
-    // ─────────────────────────────────────────
-    function saveToLocalStorage() {
-      localStorage.setItem("today_attendees", JSON.stringify(attendees));
-      // 저장 데이터 유무에 따라 최종 저장 버튼 활성화
-      saveBtn.disabled = attendees.length === 0;
-      saveMsg.textContent = "";
+    
+    const now = new Date();
+    attendees.push({ 
+      name: name, 
+      status: "pending", 
+      time: now.toISOString(),
+      absenceReason: ""
+    });
+    
+    saveToLocalStorage();
+    renderAttendees();
+    nameInput.value = "";
+    hideDropdown();
+  }
+  
+  function saveToLocalStorage() {
+    localStorage.setItem("today_attendees", JSON.stringify(attendees));
+    localStorage.setItem("member_counts", JSON.stringify(memberAttendanceCounts));
+    updateCompleteButton();
+  }
+  
+  function updateCompleteButton() {
+    const processedCount = attendees.filter(att => att.status !== "pending").length;
+    if (processedCount > 0) {
+      completeSection.style.display = "block";
+    } else {
+      completeSection.style.display = "none";
     }
-
-    // ─────────────────────────────────────────
-    // (6) attendees를 화면에 렌더링
-    // ─────────────────────────────────────────
-    function renderAttendees() {
-      attendeeList.innerHTML = "";
-      attendees.forEach((att, idx) => {
-        const div = document.createElement("div");
-        div.className = "attendee-item";
-        div.id = `attendee-${idx}`;
+  }
+  
+  function renderAttendees() {
+    attendeeList.innerHTML = "";
+    attendees.forEach((att, idx) => {
+      const div = document.createElement("div");
+      div.className = "bg-white rounded-lg border border-gray-300 p-4 flex justify-between items-center";
+      div.id = `attendee-${idx}`;
+      
+      if (att.status === "pending") {
         div.innerHTML = `
-          <span class="name">${att.name}</span>
-          <div>
-            <button class="attend" onclick="markStatus(${idx}, 'attended')">출석</button>
-            <button class="late" onclick="markStatus(${idx}, 'late')">지각</button>
-            <button class="missed" onclick="markStatus(${idx}, 'missed')">도장X</button>
-            <button class="delete" onclick="removeAttendee(${idx})">❌삭제</button>
+          <span class="text-lg font-medium text-[#3C1F1A]">${att.name}</span>
+          <div class="flex space-x-2">
+            <button class="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm hover:bg-green-200" onclick="processAttendance(${idx})">출석</button>
+            <button class="px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm hover:bg-red-200" onclick="processAbsence(${idx})">결석</button>
+            <button class="px-3 py-2 bg-gray-100 text-gray-600 rounded-full text-sm hover:bg-gray-200" onclick="removeAttendee(${idx})">삭제</button>
           </div>
         `;
-        attendeeList.appendChild(div);
+      } else {
+        const statusDisplay = getStatusDisplay(att);
+        div.innerHTML = `
+          <div class="flex items-center space-x-3">
+            <span class="text-lg font-medium text-[#3C1F1A]">${att.name}</span>
+            <span class="text-sm ${getStatusColor(att.status)}">${statusDisplay}</span>
+          </div>
+          <div class="flex space-x-2">
+            <button class="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-full text-sm hover:bg-yellow-200" onclick="undoAttendance(${idx})">취소</button>
+            <button class="px-3 py-2 bg-gray-100 text-gray-600 rounded-full text-sm hover:bg-gray-200" onclick="removeAttendee(${idx})">삭제</button>
+          </div>
+        `;
+      }
+      attendeeList.appendChild(div);
+    });
+    updateCompleteButton();
+  }
 
-        // 상태가 이미 정해진 경우, 버튼 색상/텍스트 업데이트
-        if (att.status !== "pending") {
-          updateStatusUI(idx);
-        }
-      });
-      saveBtn.disabled = attendees.length === 0;
+  // 출석 처리 함수들
+  function processAttendance(index) {
+    currentProcessingIndex = index;
+    
+    if (isLateTime()) {
+      latePopup.classList.remove("hidden");
+    } else {
+      // 참여비 확인 팝업 표시
+      document.getElementById("paymentPopup").classList.remove("hidden");
     }
-
-    // ─────────────────────────────────────────
-    // (7) 출석/지각/도장X 버튼 클릭 시
-    // ─────────────────────────────────────────
-    function markStatus(index, newStatus) {
-      attendees[index].status = newStatus;
-      // 클릭한 시점을 출석 시간으로 기록 (string 형태)
-      attendees[index].time = new Date().toISOString();
+  }
+  
+  function confirmLate() {
+    // 지각 상태 저장
+    isCurrentlyLate = true;
+    closeLatePopup();
+    document.getElementById("paymentPopup").classList.remove("hidden");
+  }
+  
+  function confirmAttendance(index, isLate) {
+    const att = attendees[index];
+    att.status = isLate ? "late" : "attended";
+    att.time = new Date().toISOString();
+    
+    // 로컬 카운트 업데이트 (서버 저장은 출석 완료 시에만)
+    loadUserAttendanceFromServer(att.name).then((count) => {
+      // attended 또는 late 상태 모두 카운트 증가 (총 참석 횟수)
+      memberAttendanceCounts[att.name] = count + 1;
       saveToLocalStorage();
-      updateStatusUI(index);
-    }
-
-    function updateStatusUI(index) {
-      const container = document.getElementById(`attendee-${index}`);
+      renderAttendees();
+    });
+  }
+  
+  function processAbsence(index) {
+    currentProcessingIndex = index;
+    absenceReason.value = "";
+    absencePopup.classList.remove("hidden");
+  }
+  
+  function confirmAbsence() {
+    const att = attendees[currentProcessingIndex];
+    att.status = "absent";
+    att.time = new Date().toISOString();
+    att.absenceReason = absenceReason.value.trim();
+    
+    saveToLocalStorage();
+    renderAttendees();
+    closeAbsencePopup();
+  }
+  
+  function undoAttendance(index) {
+    if (confirm("출석을 취소하시겠습니까?")) {
       const att = attendees[index];
-      // 버튼들 숨기고, 상태 텍스트만 보여주도록 바꿔줍니다.
-      container.innerHTML = `
-        <span class="name">${att.name}</span>
-        <span>${statusText(att.status)}</span>
-        <button class="delete" onclick="removeAttendee(${index})">❌삭제</button>
-      `;
+      
+      att.status = "pending";
+      att.absenceReason = "";
+      
+      saveToLocalStorage();
+      renderAttendees();
     }
+  }
 
-    function statusText(status) {
-      if (status === "attended") return "✅ 출석";
-      if (status === "late") return "⏰ 지각";
-      if (status === "missed") return "❌ 도장X";
-      return "";
+  // 출석 완료 함수
+  function completeAttendance() {
+    if (confirm("⚠️ 주의: 출석 완료를 누르면 오늘 날짜의 기존 모든 출석 기록이 현재 명단으로 교체됩니다.\n\n정말로 모임을 완료하시겠습니까?")) {
+      // 처리된 출석 기록만 필터링
+      const processedAttendees = attendees.filter(att => att.status !== "pending");
+      
+      if (processedAttendees.length === 0) {
+        alert("저장할 출석 기록이 없습니다.");
+        return;
+      }
+      
+      // 모든 출석 기록을 한 번에 서버에 저장
+      fetch('/api/save_all_attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attendees: processedAttendees })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'ok') {
+          // 모임일 등록 API 호출
+          return fetch('/api/complete_meeting', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+        } else {
+          throw new Error(data.message || '출석 기록 저장 실패');
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'ok') {
+          localStorage.removeItem("today_attendees");
+          localStorage.removeItem("member_counts");
+          attendees = [];
+          memberAttendanceCounts = {};
+          renderAttendees();
+          showMessage(inputMessage, "모임이 완료되었습니다. 모든 출석 기록이 저장되었습니다.", "success");
+        } else {
+          alert('모임 완료 처리 실패: ' + data.message);
+        }
+      })
+      .catch(err => {
+        console.error('모임 완료 오류:', err);
+        alert('모임 완료 처리 중 오류가 발생했습니다: ' + err.message);
+      });
     }
+  }
 
-    // ─────────────────────────────────────────
-    // (8) 출석자 삭제 함수
-    // ─────────────────────────────────────────
-    function removeAttendee(index) {
+  // 팝업 관련 함수들
+  function closeLatePopup() {
+    latePopup.classList.add("hidden");
+    currentProcessingIndex = -1;
+  }
+  
+  function closeAbsencePopup() {
+    absencePopup.classList.add("hidden");
+    currentProcessingIndex = -1;
+  }
+
+  // 지각 상태를 저장할 전역 변수
+  let isCurrentlyLate = false;
+
+  // 참여비 확인 관련 함수들
+  function confirmPayment(isPaid) {
+    document.getElementById("paymentPopup").classList.add("hidden");
+    
+    // 실제 출석 처리 (저장된 지각 상태 사용)
+    confirmAttendance(currentProcessingIndex, isCurrentlyLate);
+    
+    // 지각 상태 초기화
+    isCurrentlyLate = false;
+    
+    // 참여비 상태에 따라 메시지 표시 (선택사항)
+    if (!isPaid) {
+      setTimeout(() => {
+        showMessage(inputMessage, "참여비 입금을 잊지 마세요! 💰", "info");
+      }, 1000);
+    }
+  }
+
+  // 상태 관련 함수들
+  function getStatusDisplay(att) {
+    const count = memberAttendanceCounts[att.name] || 1;
+    if (att.status === "attended") return `${count}번째 참석 ✅`;
+    if (att.status === "late") return `${count}번째 참석 (지각) ⏰`;
+    if (att.status === "absent") return att.absenceReason ? `결석 (${att.absenceReason})` : "결석 🚫";
+    return "";
+  }
+  
+  function getStatusColor(status) {
+    if (status === "attended") return "text-green-600";
+    if (status === "late") return "text-yellow-600";
+    if (status === "absent") return "text-red-600";
+    return "text-gray-600";
+  }
+  
+  function removeAttendee(index) {
+    if (confirm("정말로 삭제하시겠습니까?")) {
+      const att = attendees[index];
+      
+      // 참석 횟수 감소 (출석이나 지각인 경우만)
+      if ((att.status === "attended" || att.status === "late") && memberAttendanceCounts[att.name] > 0) {
+        memberAttendanceCounts[att.name]--;
+      }
+      
       attendees.splice(index, 1);
       saveToLocalStorage();
       renderAttendees();
     }
+  }
 
-    // ─────────────────────────────────────────
-    // (9) “전체 명단 저장” 버튼 클릭 시
-    //     - 최종 서버로 전송 (AJAX)
-    //     - 성공하면 localStorage 초기화
-    // ─────────────────────────────────────────
-    saveBtn.addEventListener("click", () => {
-      // JSON으로 보낼 데이터: [{name, status, time}, ...]
-      fetch("/api/save_attendance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ attendees: attendees }),
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.status === "ok") {
-            saveMsg.textContent = "✅ 서버에 출석 명단이 저장되었습니다!";
-            localStorage.removeItem("today_attendees");
-            attendees = [];
-            renderAttendees();
-          } else {
-            saveMsg.textContent = "❌ 저장 중 문제가 발생했습니다.";
-          }
-        })
-        .catch(err => {
-          console.error(err);
-          saveMsg.textContent = "❌ 네트워크 오류가 발생했습니다.";
-        });
+  // 서버 저장 - Promise 반환
+  function saveToServer(attendee) {
+    return fetch("/save_attendance", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        name: attendee.name,
+        status: attendee.status,
+        time: attendee.time,
+        absence_reason: attendee.absenceReason || ""
+      }),
+    })
+    .then(res => res.json())
+    .then(data => {
+      console.log("서버에 저장되었습니다:", data);
+      return data;
+    })
+    .catch(err => {
+      console.log("서버 저장 실패:", err);
+      throw err;
     });
+  }
 
-    // ─────────────────────────────────────────
-    // (10) 드롭다운 외부 클릭 시 닫기
-    // ─────────────────────────────────────────
-    document.addEventListener("click", function (event) {
-      if (!event.target.closest(".dropdown-container")) {
-        hideDropdown();
+  // 서버에서 사용자 출석 횟수 가져오기
+  function loadUserAttendanceFromServer(username) {
+    return fetch(`/api/get_attendance_count/${encodeURIComponent(username)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'ok') {
+          return data.total_attended;
+        } else {
+          console.log('출석 데이터 로딩 실패:', data.message);
+          return 0;
+        }
+      })
+      .catch(err => {
+        console.log('출석 데이터 로딩 오류:', err);
+        return 0;
+      });
+  }
+
+  // 초기 로딩 시 기존 localStorage 데이터 복구
+  function initializeAttendanceCounts() {
+    const savedCounts = JSON.parse(localStorage.getItem("member_counts") || "{}");
+    memberAttendanceCounts = savedCounts;
+    
+    // 서버에서 최신 데이터로 업데이트
+    allMembers.forEach(async (name) => {
+      try {
+        const serverCount = await loadUserAttendanceFromServer(name);
+        memberAttendanceCounts[name] = serverCount;
+      } catch (err) {
+        console.log(`${name} 출석 데이터 로딩 실패:`, err);
       }
     });
-  </script>
+    
+    saveToLocalStorage();
+  }
 
+  // 메시지 표시 함수
+  function showMessage(element, message, type = "info") {
+    element.textContent = message;
+    element.className = `text-sm mt-2 text-center ${
+      type === "error" ? "text-red-500" : type === "success" ? "text-green-600" : "text-[#3C1F1A]"
+    }`;
+    element.style.opacity = "1";
+    setTimeout(() => {
+      element.style.opacity = "0";
+    }, 3000);
+  }
+
+  // 이벤트 리스너들
+  document.addEventListener("click", function (event) {
+    if (!event.target.closest("#nameInput") && !event.target.closest("#dropdown")) {
+      hideDropdown();
+    }
+  });
+  
+  nameInput.addEventListener("keydown", function(event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const firstItem = dropdown.querySelector(".dropdown-item");
+      if (firstItem && firstItem.textContent !== "검색 결과가 없습니다") {
+        addAttendee(firstItem.textContent);
+      }
+    }
+  });
+
+  // 현재 시간과 지각 상태 디버깅용 함수
+  function updateTimeInfo() {
+    const now = new Date();
+    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+    const timeStr = now.toLocaleTimeString('ko-KR');
+    const dayStr = dayNames[now.getDay()];
+    const isLate = isLateTime();
+    
+    const meetingTime = MEETING_TIMES[now.getDay()];
+    const isMeetingDay = !!meetingTime;
+    
+    document.getElementById('timeInfo').textContent = 
+      `${dayStr}요일 ${timeStr} | 모임일: ${isMeetingDay ? 'O' : 'X'} | 지각시간: ${isLate ? 'O' : 'X'}`;
+  }
+
+
+
+  // 페이지 로드시 초기화
+  document.addEventListener('DOMContentLoaded', function() {
+    loadUsers();
+    updateTodayInfo();
+    updateTimeInfo(); // 시간 정보 표시
+    setInterval(updateTodayInfo, 30000); // 30초마다 업데이트
+    setInterval(updateTimeInfo, 1000); // 1초마다 시간 업데이트
+  });
+
+
+</script>
+
+<style>
+.dropdown-list {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-item {
+  padding: 12px 20px;
+  cursor: pointer;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.dropdown-item:hover {
+  background-color: #f9fafb;
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+</style>
 {% endblock %}
-

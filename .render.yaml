@@ -1,9 +1,20 @@
 services:
   - type: web
-    name: flask-app
+    name: bookclub-attendance
     env: python
-    buildCommand: "pip install -r requirements.txt"
+    buildCommand: "pip install -r requirements.txt && flask db upgrade"
     startCommand: gunicorn app:app
     envVars:
       - key: FLASK_ENV
         value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bookclub-db
+          property: connectionString
+
+databases:
+  - name: bookclub-db
+    databaseName: bookclub
+    user: bookclub_user
