@@ -11,7 +11,7 @@
   <!-- Google Fonts for modern typography -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <!-- Custom CSS만 사용 -->
-  <link href="{{ url_for('static', filename='custom.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='custom.css') }}?v=2" rel="stylesheet">
   {% block extra_head %}{% endblock %}
 </head>
 <body class="bg-[#e3d5ce] min-h-screen font-['Inter']">
@@ -27,7 +27,12 @@
     
     <!-- 상태별 버튼들 -->
     <div class="flex items-center space-x-4">
-      {% if current_user.is_authenticated %}
+      <!-- 디버깅 정보 (임시) -->
+      <span class="text-xs text-gray-500">
+        {% if current_user and current_user.is_authenticated %}인증됨{% else %}미인증{% endif %}
+      </span>
+      
+      {% if current_user and current_user.is_authenticated %}
         <!-- 로그인 상태: 로그아웃 + 페이지 토글 -->
         <a href="/logout" 
            class="text-[#3C1F1A] text-sm hover:opacity-70 transition-opacity">
