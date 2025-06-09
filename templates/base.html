@@ -25,13 +25,27 @@
       </a>
     </div>
     
-    <!-- 간단한 토글 버튼 (출석 ↔ 회원) -->
-    <div class="flex items-center">
-      <a id="nav-toggle" 
-         href="/members" 
-         class="bg-[#3C1F1A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
-        회원 관리
-      </a>
+    <!-- 상태별 버튼들 -->
+    <div class="flex items-center space-x-4">
+      {% if current_user.is_authenticated %}
+        <!-- 로그인 상태: 로그아웃 + 페이지 토글 -->
+        <a href="/logout" 
+           class="text-[#3C1F1A] text-sm hover:opacity-70 transition-opacity">
+          로그아웃
+        </a>
+        
+        <a id="nav-toggle" 
+           href="/members" 
+           class="bg-[#3C1F1A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
+          회원 관리
+        </a>
+      {% else %}
+        <!-- 로그아웃 상태: 로그인 버튼만 -->
+        <a href="/login" 
+           class="bg-[#3C1F1A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
+          로그인
+        </a>
+      {% endif %}
     </div>
   </nav>
 

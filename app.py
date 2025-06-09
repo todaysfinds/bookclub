@@ -36,6 +36,12 @@ else:
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# 세션 보안 설정
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') == 'production'  # HTTPS에서만 쿠키 전송
+app.config['SESSION_COOKIE_HTTPONLY'] = True  # JavaScript로 쿠키 접근 차단
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF 공격 방지
+app.config['PERMANENT_SESSION_LIFETIME'] = 21600  # 6시간 후 자동 만료
+
 # SQLAlchemy, Migrate, LoginManager 초기화
 db.init_app(app)
 migrate = Migrate(app, db)
@@ -47,6 +53,8 @@ migrate = Migrate(app, db)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+login_manager.session_protection = 'strong'  # 세션 보안 강화
+login_manager.login_message = '로그인이 필요합니다.'
 
 # ---------- 유저 로딩 ---------- #
 @login_manager.user_loader
@@ -72,10 +80,10 @@ except Exception:
 # ---------- 라우팅 ---------- #
 
 @app.route('/')
+@login_required
 def home():
     """
-    로그인 여부와 관계없이 출석 페이지를 보여줍니다.
-    다만, 출석 "저장" API는 POST 시에만 인증을 요구합니다.
+    로그인 후에만 출석 페이지에 접근 가능합니다.
     """
     # Member 목록만 조회해서 넘겨줍니다.
     member_names = [u.username for u in User.query.order_by(User.username).all()]
@@ -87,7 +95,7 @@ def login():
     if request.method == 'POST':
         acct = Account.query.filter_by(username=request.form['username']).first()
         if acct and check_password_hash(acct.password, request.form['password']):
-            login_user(acct)
+            login_user(acct, remember=False)  # 브라우저 종료 시 로그아웃
             return redirect(url_for('home'))
         flash('로그인 정보가 일치하지 않습니다.')
     return render_template('login.html')
@@ -101,6 +109,7 @@ def logout():
 
 
 @app.route('/index')
+@login_required
 def index_redirect():
     return redirect(url_for('home'))
 
@@ -109,6 +118,7 @@ def index_redirect():
 #  (/members 라우트는 기존과 동일)
 # ───────────────────────────────────────────────────
 @bp.route('/members', methods=['GET'])
+@login_required
 def members():
     # 1) 운영진만 뽑아서 id(숫자) 순서로 정렬
     admins = User.query.filter_by(is_admin=True).order_by(User.id).all()
@@ -516,6 +526,7 @@ def get_user_attendance(user_id):
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/api/get_attendance_count/<username>')
+@login_required
 def get_attendance_count_by_name(username):
     """사용자 이름으로 출석 횟수 조회 (로그인 불필요)"""
     try:
