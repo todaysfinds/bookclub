@@ -61,7 +61,7 @@ login_manager.login_message = '로그인이 필요합니다.'
 def load_user(account_id):
     return Account.query.get(int(account_id))
 
-# 템플릿 컨텍스트에 current_user 명시적으로 전달
+# 템플릿에서 current_user 사용 가능하도록 컨텍스트 주입
 @app.context_processor
 def inject_user():
     return dict(current_user=current_user)
